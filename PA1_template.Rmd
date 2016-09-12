@@ -1,25 +1,78 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
+author: "Christel Veefkind"
+date: "27 juli 2016"
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: yes
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 ## Loading and preprocessing the data
 
 
+```{r cars}
+  library(ggplot2)
+  setwd("~/Coursera/RepData")
+  activity <- read.csv("activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
+```{r activity, echo=TRUE}
+      sum(activity$steps,na.rm =TRUE)
+```
+## Histogram of total number of steps taken per day
 
+```{r stepsPerDay, echo=TRUE}
+      stepsPerDay <- aggregate(activity$steps, list(date = activity$date),sum)
+      hist(stepsPerDay$x)
+```
 
+## Mean and Median of the total number of steps taken per day
+```{r Mean, echo=TRUE}
+      summary(stepsPerDay$x)
+```
+## Average daily activity pattern
 
-## What is the average daily activity pattern?
+```{r daily pattern, echo=TRUE}
+      stepsPerInterval <- aggregate(activity$steps, list(interval = activity$interval),mean, na.rm = TRUE)
+      plot(stepsPerInterval$interval, stepsPerInterval$x, type = "l")
+      IntervalHighestSteps <- subset(stepsPerInterval, x == max(stepsPerInterval$x), select = interval)
+      View(IntervalHighestSteps)
+```
+## Missing values
+ 
 
-
-
-## Imputing missing values
-
-
+```{r na_steps, echo=TRUE}
+      na_steps <- activity[rowSums(is.na(activity)) > 0,]
+      nrow(na_steps)
+      
+    ### Filling in missing values with average per interval
+      activity_filled <- activity
+      activity_filled$steps[is.na(activity_filled$steps)] <- round(stepsPerInterval$x)
+    ###  Steps per day with NA values filled with the mean per interval
+      stepsPerDay_filled <- aggregate(activity_filled$steps, list(date = activity_filled$date),mean)
+      hist(stepsPerDay_filled$x)
+      
+      summary(stepsPerDay_filled$x)
+``` 
+There is no difference in mean and median
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekday, echo=TRUE}
+      activity_filled$day <- weekdays(as.Date(activity_filled$date))
+      activity_filled_grouped <- aggregate(activity_filled$steps, by=list(activity_filled$interval, activity_filled$day), FUN=mean)
+      activity_filled_grouped$dayType <- "weekday"
+      activity_filled_grouped$dayType[activity_filled_grouped$Group.2 %in% c("zaterdag","zondag")] <- "weekend"
+      activity_filled_grouped$dayType <- as.factor(activity_filled_grouped$dayType)
+        qplot(Group.1,x , data = activity_filled_grouped, 
+        geom = "line",
+        xlab =  "interval",
+        ylab =  "average number of steps",
+        main = "Average steps Weekend versus Weekdays",
+        facets =dayType ~.)
+      
